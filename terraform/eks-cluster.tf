@@ -15,24 +15,36 @@ module "eks" {
   }
 
   eks_managed_node_groups = {
-    one = {
-      name = "node-group-1"
+    apps = {
+      name           = "apps-node-group"
+      instance_types = ["t3.medium"]
+      min_size       = 2
+      max_size       = 4
+      desired_size   = 3
 
-      instance_types = ["t3.small"]
-
-      min_size     = 1
-      max_size     = 3
-      desired_size = 2
+      labels = {
+        role = "applications"
+      }
     }
 
-    two = {
-      name = "node-group-2"
+    monitoring = {
+      name           = "monitoring-node-group"
+      instance_types = ["t3.medium"]
+      min_size       = 1
+      max_size       = 2
+      desired_size   = 1
 
-      instance_types = ["t3.small"]
+      labels = {
+        role = "monitoring"
+      }
 
-      min_size     = 1
-      max_size     = 2
-      desired_size = 1
+      taints = {
+        monitoring = {
+          key    = "monitoring"
+          value  = "true"
+          effect = "NO_SCHEDULE"
+        }
+      }
     }
   }
 }
