@@ -58,7 +58,7 @@ resource "helm_release" "vault" {
         ]
       }
       ui = {
-        enabled = true
+        enabled     = true
         serviceType = "ClusterIP"
       }
     })
