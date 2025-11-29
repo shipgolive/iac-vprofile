@@ -1,3 +1,8 @@
+import {
+  to = kubernetes_namespace.vault
+  id = "vault"
+}
+
 resource "kubernetes_namespace" "vault" {
   metadata {
     name = "vault"
