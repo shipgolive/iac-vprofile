@@ -33,7 +33,7 @@ resource "helm_release" "vault" {
         }
         standalone = {
           enabled = true
-          config = <<-EOT
+          config  = <<-EOT
             ui = true
             listener "tcp" {
               tls_disable = 1
