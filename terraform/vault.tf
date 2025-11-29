@@ -10,12 +10,21 @@ resource "kubernetes_namespace" "vault" {
   depends_on = [module.eks]
 }
 
+import {
+  to = helm_release.vault
+  id = "vault/vault"
+}
+
 resource "helm_release" "vault" {
   name       = "vault"
   repository = "https://helm.releases.hashicorp.com"
   chart      = "vault"
   namespace  = kubernetes_namespace.vault.metadata[0].name
   version    = "0.28.1"
+
+  lifecycle {
+    ignore_changes = [version]
+  }
 
   values = [
     yamlencode({
