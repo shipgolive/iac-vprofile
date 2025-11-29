@@ -80,3 +80,38 @@ jobs:
        - name: Install Ingress controller
          if: steps.apple.outcome == 'success' && steps.getconfig.outcome == 'success'
          run: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.3/deploy/static/provider/aws/deploy.yaml
+
+       - name: Wait for Vault deployment
+         if: steps.apple.outcome == 'success' && steps.getconfig.outcome == 'success'
+         run: |
+           echo "Waiting for Vault to be ready..."
+           kubectl wait --namespace vault --for=condition=ready pod --selector=app.kubernetes.io/name=vault --timeout=300s
+           
+       - name: Initialize Vault
+         if: steps.apple.outcome == 'success' && steps.getconfig.outcome == 'success'
+         run: |
+           echo "Initializing Vault..."
+           VAULT_POD=$(kubectl get pods -n vault -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}')
+           
+           if kubectl exec -n vault $VAULT_POD -- vault status | grep -q "Initialized.*true"; then
+             echo "Vault is already initialized"
+           else
+             echo "Initializing Vault for the first time..."
+             kubectl exec -n vault $VAULT_POD -- vault operator init -key-shares=1 -key-threshold=1 -format=json > vault-keys.json
+             
+             UNSEAL_KEY=$(cat vault-keys.json | jq -r '.unseal_keys_b64[0]')
+             ROOT_TOKEN=$(cat vault-keys.json | jq -r '.root_token')
+             
+             kubectl exec -n vault $VAULT_POD -- vault operator unseal $UNSEAL_KEY
+             
+             echo "==========================================="
+             echo "VAULT SETUP COMPLETE"
+             echo "Root Token: $ROOT_TOKEN"
+             echo "Unseal Key: $UNSEAL_KEY"
+             echo "=========================================="
+           fi
+           
+           VAULT_LB=$(kubectl get svc vault-ui-external -n vault -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+           if [ ! -z "$VAULT_LB" ]; then
+             echo "Vault UI: http://$VAULT_LB:8200"
+           fi
